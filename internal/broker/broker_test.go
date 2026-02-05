@@ -98,7 +98,9 @@ func TestQueue_Send(t *testing.T) {
 	t.Run("queue full", func(t *testing.T) {
 		q := NewQueue(config.QueueConfig{Size: 1})
 		defer q.Close()
-		q.Send("world") // Fill the queue
+		if err := q.Send("world"); err != nil { // Fill the queue
+			t.Fatalf("failed to fill queue: %v", err)
+		}
 		err := q.Send("extra")
 		if err != ErrQueueFull {
 			t.Fatalf("expected error %v, got %v", ErrQueueFull, err)
@@ -170,7 +172,9 @@ func TestQueue_Broadcaster(t *testing.T) {
 	sub2, _ := q.Subscribe()
 
 	msg := "broadcast test"
-	q.Send(msg)
+	if err := q.Send(msg); err != nil {
+		t.Fatalf("failed to send message: %v", err)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)

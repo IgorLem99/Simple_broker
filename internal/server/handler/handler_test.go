@@ -51,7 +51,9 @@ func TestHandler_PostMessage(t *testing.T) {
 		h := New(b)
 
 		q, _ := b.GetQueue("q1")
-		q.Send("first message")
+		if err := q.Send("first message"); err != nil {
+			t.Fatalf("failed to fill queue: %v", err)
+		}
 
 		body := strings.NewReader(`{"key": "value"}`)
 		req := httptest.NewRequest(http.MethodPost, "/queues/q1/messages", body)
