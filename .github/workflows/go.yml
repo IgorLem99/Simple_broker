@@ -10,21 +10,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: '1.22'
+        cache: true
 
-    - name: List files
-      run: ls -R
+    - name: Verify dependencies
+      run: |
+        go mod tidy
+        go mod verify
 
-    - name: Tidy dependencies
-      run: go mod tidy
-
-    - name: Download dependencies
-      run: go mod download
+    - name: Build
+      run: go build -v ./...
 
     - name: Test
-      run: go test -v ./...
+      run: go test -v -race ./...
