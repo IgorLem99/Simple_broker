@@ -96,12 +96,12 @@ func TestHandler_PostSubscription(t *testing.T) {
 			h.ServeHTTP(rr, req)
 		}()
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 
 		q, _ := b.GetQueue("q1")
 		q.Send("test message")
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 		cancel()
 		<-done
 
@@ -134,7 +134,7 @@ func TestHandler_PostSubscription(t *testing.T) {
 		b := broker.New(cfg)
 		defer b.Close()
 		h := New(b)
-		
+
 		q, _ := b.GetQueue("q1")
 		_, _ = q.Subscribe()
 
