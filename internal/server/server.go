@@ -3,8 +3,8 @@ package server
 import (
 	"net/http"
 
-	"simple_broker/internal/broker"
-	"simple_broker/internal/server/handler"
+	"github.com/IgorLem99/Simple_broker/internal/broker"
+	"github.com/IgorLem99/Simple_broker/internal/server/handler"
 )
 
 type Server struct {
