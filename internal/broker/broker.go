@@ -120,7 +120,7 @@ func (q *Queue) broadcaster() {
 			go func(sub Subscriber) {
 				defer wg.Done()
 				defer func() {
-					recover()
+					_ = recover()
 				}()
 				select {
 				case sub <- msg:

@@ -27,7 +27,7 @@ func TestLoad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(tmpfile.Name()) // clean up
+	defer func() { _ = os.Remove(tmpfile.Name()) }() // clean up
 
 	if _, err := tmpfile.Write(content); err != nil {
 		t.Fatalf("failed to write to temp file: %v", err)
@@ -71,7 +71,7 @@ func TestLoad(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create temp file: %v", err)
 		}
-		defer os.Remove(invalidTmpFile.Name())
+		defer func() { _ = os.Remove(invalidTmpFile.Name()) }()
 
 		if _, err := invalidTmpFile.Write(invalidContent); err != nil {
 			t.Fatalf("failed to write to temp file: %v", err)

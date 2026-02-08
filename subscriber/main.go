@@ -12,7 +12,7 @@ func main() {
 		fmt.Printf("Error subscribing: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	fmt.Println("Subscribed to app_events. Waiting for messages...")
 
