@@ -212,3 +212,38 @@ func TestQueue_Broadcaster(t *testing.T) {
 		t.Errorf("expected message to be removed from queue, but length is %d", len(q.msgs))
 	}
 }
+
+func TestQueue_SlowSubscriber_DoesNotBlock(t *testing.T) {
+	// Тест проверяет, что медленный подписчик не блокирует отправку новых сообщений
+	q := NewQueue(config.QueueConfig{Size: 10, MaxSub: 2})
+	defer q.Close()
+
+	// 1. Создаем "медленного" подписчика (не будем читать из него сразу)
+	_, _ = q.Subscribe()
+
+	// 2. Отправляем первое сообщение, чтобы занять broadcaster
+	if err := q.Send("msg1"); err != nil {
+		t.Fatalf("failed to send msg1: %v", err)
+	}
+
+	// Даем время broadcaster'у начать обработку и "зависнуть" на отправке в slowSub
+	time.Sleep(50 * time.Millisecond)
+
+	// 3. Пытаемся отправить второе сообщение
+	// В старой версии (с блокировкой) этот вызов завис бы навсегда (или до таймаута теста),
+	// так как broadcaster держал бы мьютекс.
+	// В новой версии мьютекс свободен, и Send должен пройти мгновенно.
+	done := make(chan error)
+	go func() {
+		done <- q.Send("msg2")
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("failed to send msg2: %v", err)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("Send blocked by slow subscriber! Fix is not working.")
+	}
+}

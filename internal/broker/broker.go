@@ -82,12 +82,11 @@ func (q *Queue) Send(msg Message) error {
 }
 
 func (q *Queue) broadcaster() {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-
 	for {
+		q.mu.Lock()
 		select {
 		case <-q.done:
+			q.mu.Unlock()
 			return
 		default:
 		}
@@ -96,28 +95,34 @@ func (q *Queue) broadcaster() {
 			q.cond.Wait()
 			select {
 			case <-q.done:
+				q.mu.Unlock()
 				return
 			default:
 			}
 		}
 
 		msg := q.msgs[0]
+		q.msgs = q.msgs[1:]
+
+		subs := make([]Subscriber, 0, len(q.subs))
+		for sub := range q.subs {
+			subs = append(subs, sub)
+		}
+		q.mu.Unlock()
 
 		var wg sync.WaitGroup
-		wg.Add(len(q.subs))
-
-		for sub := range q.subs {
+		for _, sub := range subs {
+			wg.Add(1)
 			go func(sub Subscriber) {
 				defer wg.Done()
+				defer func() {
+					recover()
+				}()
 				sub <- msg
 			}(sub)
 		}
 
 		wg.Wait()
-
-		if len(q.msgs) > 0 {
-			q.msgs = q.msgs[1:]
-		}
 	}
 }
 
