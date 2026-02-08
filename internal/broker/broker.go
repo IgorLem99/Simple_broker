@@ -26,6 +26,7 @@ type Queue struct {
 	msgs   []Message
 	subs   map[Subscriber]struct{}
 	done   chan struct{}
+	closed chan struct{}
 }
 
 func NewQueue(cfg config.QueueConfig) *Queue {
@@ -36,6 +37,7 @@ func NewQueue(cfg config.QueueConfig) *Queue {
 		msgs:   make([]Message, 0, cfg.Size),
 		subs:   make(map[Subscriber]struct{}),
 		done:   make(chan struct{}),
+		closed: make(chan struct{}),
 	}
 	q.cond = sync.NewCond(&q.mu)
 	go q.broadcaster()
@@ -82,6 +84,8 @@ func (q *Queue) Send(msg Message) error {
 }
 
 func (q *Queue) broadcaster() {
+	defer close(q.closed)
+
 	for {
 		q.mu.Lock()
 		select {
@@ -118,7 +122,10 @@ func (q *Queue) broadcaster() {
 				defer func() {
 					recover()
 				}()
-				sub <- msg
+				select {
+				case sub <- msg:
+				case <-q.done:
+				}
 			}(sub)
 		}
 
@@ -128,20 +135,26 @@ func (q *Queue) broadcaster() {
 
 func (q *Queue) Close() {
 	q.mu.Lock()
-	defer q.mu.Unlock()
 
 	select {
 	case <-q.done:
+		q.mu.Unlock()
 		return
 	default:
 		close(q.done)
 	}
+	q.cond.Broadcast()
+	q.mu.Unlock()
+
+	<-q.closed
+
+	q.mu.Lock()
+	defer q.mu.Unlock()
 
 	for sub := range q.subs {
 		delete(q.subs, sub)
 		close(sub)
 	}
-	q.cond.Broadcast()
 }
 
 type Broker struct {
